@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>SmartSpend — Affordability Engine</title>
+  <link rel="stylesheet" href="/static/style.css" />
+</head>
+<body>
+
+<!-- ── Header ─────────────────────────────────────────────────────────────── -->
+<header class="topbar">
+  <div class="topbar-left">
+    <span class="logo">💳 SmartSpend</span>
+    <span class="tagline">AI Affordability Engine</span>
+  </div>
+  <button class="theme-btn" onclick="toggleTheme()" title="Toggle theme">
+    <span id="theme-icon">☀️</span>
+  </button>
+</header>
+
+<!-- ── Main layout ────────────────────────────────────────────────────────── -->
+<div class="layout">
+
+  <!-- LEFT SIDEBAR: raw bank data -->
+  <aside class="sidebar" id="sidebar-bank">
+    <div class="sidebar-header">
+      <span class="sidebar-icon">🏦</span>
+      <span>Bank Data</span>
+      <button class="refresh-btn" onclick="loadProfile()" title="Refresh">⟳</button>
+    </div>
+
+    <div id="bank-loading" class="loading-state">
+      <div class="spinner"></div>
+      <p>Connecting to Plaid…</p>
+    </div>
+
+    <div id="bank-content" class="hidden">
+      <div class="stat-card">
+        <div class="stat-label">Current Balance</div>
+        <div class="stat-value" id="bal-value">—</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Transactions (90 days)</div>
+        <div class="stat-value" id="tx-count">—</div>
+      </div>
+
+      <div class="section-title">Last 10 Transactions</div>
+      <div id="tx-list" class="tx-list"></div>
+    </div>
+  </aside>
+
+  <!-- CENTER: input + result -->
+  <main class="center">
+    <div class="card form-card">
+      <h2 class="form-title">Can I afford this?</h2>
+
+      <div class="form-group">
+        <label>What do you want to buy / spend on?</label>
+        <input type="text" id="req-text" placeholder="e.g. Laptop, family trip, course fee…" />
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label>Amount</label>
+          <input type="number" id="req-amount" placeholder="0.00" min="0" />
+        </div>
+        <div class="form-group">
+          <label>Deadline</label>
+          <input type="date" id="req-deadline" />
+        </div>
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label>Type</label>
+          <select id="req-type">
+            <option value="purchase">Purchase</option>
+            <option value="travel">Travel</option>
+            <option value="education">Education</option>
+            <option value="investment">Investment</option>
+            <option value="housing">Housing</option>
+            <option value="debt_repayment">Debt Repayment</option>
+            <option value="family_transfer">Family Transfer</option>
+            <option value="emergency_expense">Emergency Expense</option>
+          </select>
+        </div>
+        <div class="form-group toggle-group">
+          <label>Allow partial payment?</label>
+          <label class="toggle">
+            <input type="checkbox" id="req-partial" checked />
+            <span class="toggle-slider"></span>
+          </label>
+        </div>
+      </div>
+
+      <button class="analyse-btn" onclick="analyse()">
+        <span id="btn-label">Analyse →</span>
+        <span id="btn-spinner" class="hidden btn-spin">⏳</span>
+      </button>
+    </div>
+
+    <!-- Result card -->
+    <div class="card result-card hidden" id="result-card">
+      <div class="result-header">
+        <span id="result-status-badge" class="status-badge">—</span>
+        <span id="result-method-badge" class="method-badge">—</span>
+      </div>
+
+      <div class="result-grid">
+        <div class="result-item">
+          <div class="result-label">Safe to pay today</div>
+          <div class="result-value" id="res-safe">—</div>
+        </div>
+        <div class="result-item">
+          <div class="result-label">Earliest full payment</div>
+          <div class="result-value" id="res-earliest">—</div>
+        </div>
+      </div>
+
+      <div id="res-plan-block" class="hidden">
+        <div class="section-title">Payment Plan</div>
+        <div id="res-plan" class="plan-list"></div>
+      </div>
+
+      <div id="res-cuts-block" class="hidden">
+        <div class="section-title">Suggested Spending Cuts</div>
+        <div id="res-cuts" class="cuts-list"></div>
+      </div>
+
+      <div class="section-title">Explanation</div>
+      <p id="res-explanation" class="explanation-text">—</p>
+    </div>
+  </main>
+
+  <!-- RIGHT SIDEBAR: analysed profile -->
+  <aside class="sidebar" id="sidebar-profile">
+    <div class="sidebar-header">
+      <span class="sidebar-icon">📊</span>
+      <span>Financial Profile</span>
+    </div>
+
+    <div id="profile-loading" class="loading-state">
+      <div class="spinner"></div>
+      <p>Analysing…</p>
+    </div>
+
+    <div id="profile-content" class="hidden">
+      <div class="stat-card highlight">
+        <div class="stat-label">Safety Buffer</div>
+        <div class="stat-value" id="prof-buffer">—</div>
+      </div>
+
+      <div class="section-title">Income Sources</div>
+      <div id="prof-income" class="profile-list"></div>
+
+      <div class="section-title">Essential Bills</div>
+      <div id="prof-essential" class="profile-list"></div>
+
+      <div class="section-title">Flexible Spend</div>
+      <div id="prof-flexible" class="profile-list"></div>
+
+      <div class="section-title">Monthly Summary</div>
+      <div class="summary-grid">
+        <div class="summary-row income-row">
+          <span>Income</span><span id="sum-income">—</span>
+        </div>
+        <div class="summary-row essential-row">
+          <span>Essentials</span><span id="sum-essential">—</span>
+        </div>
+        <div class="summary-row flexible-row">
+          <span>Flexible</span><span id="sum-flexible">—</span>
+        </div>
+        <div class="summary-row surplus-row">
+          <span>Net Surplus</span><span id="sum-surplus">—</span>
+        </div>
+      </div>
+    </div>
+  </aside>
+
+</div>
+
+<script src="/static/app.js"></script>
+</body>
+</html>
